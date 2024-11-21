@@ -134,7 +134,6 @@ resource "aws_security_group" "allow_web_and_ssh_traffic" {
   }
 }
 
-# User data script for instances
 locals {
   user_data = <<-EOF
               #!/bin/bash
@@ -146,18 +145,18 @@ locals {
               
               # Install Git
               sudo apt-get install git -y
+
+              # Remove default Apache index
+              sudo rm /var/www/html/index.html
               
-              # Clone the repository
+              # Clone the repository 
               cd /var/www/html
               sudo git clone https://github.com/PaulBoye-py/atr-motors-arthurite.git
+
+              # Copy files from atrmotors.com directory to web root
+              sudo cp -r atr-motors-arthurite/atrmotors.com/* .
               
-              # Remove default Apache index
-              sudo rm index.html
-              
-              # Move website files directly from atrmotor.com directory
-              sudo cp -r atr-motors-arthurite/atrmotor.com/* /var/www/html/
-              
-              # Clean up the cloned repository (optional)
+              # Clean up the cloned repository
               sudo rm -rf atr-motors-arthurite
               
               # Set correct permissions
@@ -168,6 +167,8 @@ locals {
               sudo systemctl restart apache2
               EOF
 }
+
+# ... (rest of the configuration remains the same)
 
 # EC2 Instances
 resource "aws_instance" "web_server_1" {
