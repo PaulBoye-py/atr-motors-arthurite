@@ -1,11 +1,7 @@
 name: ATR Motors Infrastructure Deployment
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:  # Allows manual triggering from GitHub Actions tab
+
 
 # These environment variables will be used by Terraform
 env:
