@@ -15,17 +15,14 @@ jobs:
     name: Terraform Destroy
     runs-on: ubuntu-latest
     steps:
-    # Checkout the repository
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    # Setup Terraform
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-    # Configure AWS Credentials
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -33,7 +30,6 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    # Create tfvars file
     - name: Create tfvars file
       run: |
         cat << EOF > terraform.tfvars
@@ -41,11 +37,23 @@ jobs:
         aws_secret_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
         EOF
 
-    # Initialize Terraform
     - name: Terraform Init
       run: terraform init
 
-    # Destroy Infrastructure
+    # Add these debug steps
+    - name: Terraform Show
+      run: terraform show
+
+    - name: Terraform State List
+      run: terraform state list
+
     - name: Terraform Destroy
       run: |
+        terraform destroy -auto-approve -var-file=terraform.tfvars -refresh=true
+
+    # Force cleanup if needed
+    - name: Force Cleanup
+      if: failure()
+      run: |
+        terraform state list | xargs -I {} terraform state rm {}
         terraform destroy -auto-approve -var-file=terraform.tfvars
