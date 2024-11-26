@@ -37,23 +37,27 @@ jobs:
         aws_secret_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
         EOF
 
-    - name: Terraform Init
-      run: terraform init
+    - name: List Directory Contents
+      run: |
+        pwd
+        ls -la
 
-    # Add these debug steps
+    - name: Terraform Init
+      run: |
+        terraform init
+      working-directory: .  # Explicitly set to root directory
+
     - name: Terraform Show
-      run: terraform show
+      run: |
+        terraform show
+      working-directory: .  # Explicitly set to root directory
 
     - name: Terraform State List
-      run: terraform state list
+      run: |
+        terraform state list
+      working-directory: .  # Explicitly set to root directory
 
     - name: Terraform Destroy
       run: |
         terraform destroy -auto-approve -var-file=terraform.tfvars -refresh=true
-
-    # Force cleanup if needed
-    - name: Force Cleanup
-      if: failure()
-      run: |
-        terraform state list | xargs -I {} terraform state rm {}
-        terraform destroy -auto-approve -var-file=terraform.tfvars
+      working-directory: .  # Explicitly set to root directory
