@@ -165,6 +165,10 @@ locals {
               
               # Restart Apache
               sudo systemctl restart apache2
+
+              # Set up daily git pull at midnight
+              (crontab -l 2>/dev/null; echo "0 0 * * * cd /var/www/html && sudo git pull") | crontab -
+              
               EOF
 }
 
