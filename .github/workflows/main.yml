@@ -41,6 +41,21 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    # Add a step to create the tfvars file before Terraform init
+    - name: Create tfvars file
+      run: |
+        cat << EOF > terraform.tfvars
+        aws_access_key = "${{ secrets.AWS_ACCESS_KEY_ID }}"
+        aws_secret_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        EOF
+
+# Then proceed with your existing Terraform steps
+- name: Terraform Init
+  run: terraform init
+
+- name: Terraform Validate
+  run: terraform validate
+
     # Initialize Terraform
     - name: Terraform Init
       run: terraform init
@@ -87,7 +102,7 @@ jobs:
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        terraform apply -auto-approve
+        terraform apply -auto-approve -var-file=".tfvars"
     
     # Add this step after Terraform Apply
     - name: Display Load Balancer URL
