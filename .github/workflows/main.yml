@@ -1,5 +1,4 @@
 name: ATR Motors Infrastructure Deployment
-
 on:
   push:
     branches:
@@ -21,7 +20,6 @@ jobs:
   terraform:
     name: Terraform Deploy
     runs-on: ubuntu-latest
-
     steps:
     # Checkout the repository
     - name: Checkout Code
@@ -48,13 +46,6 @@ jobs:
         aws_access_key = "${{ secrets.AWS_ACCESS_KEY_ID }}"
         aws_secret_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
         EOF
-
-# Then proceed with your existing Terraform steps
-- name: Terraform Init
-  run: terraform init
-
-- name: Terraform Validate
-  run: terraform validate
 
     # Initialize Terraform
     - name: Terraform Init
@@ -84,11 +75,9 @@ jobs:
           const output = `#### Terraform Plan 📝\`${{ steps.plan.outcome }}\`
           
           <details><summary>Show Plan</summary>
-
           \`\`\`terraform
           ${process.env.PLAN}
           \`\`\`
-
           </details>`;
           
           github.rest.issues.createComment({
@@ -102,8 +91,8 @@ jobs:
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        terraform apply -auto-approve -var-file=".tfvars"
-    
+        terraform apply -auto-approve -var-file=terraform.tfvars
+
     # Add this step after Terraform Apply
     - name: Display Load Balancer URL
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
