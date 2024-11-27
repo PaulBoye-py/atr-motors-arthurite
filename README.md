@@ -3,14 +3,14 @@
 ## Project Overview
 
 **Objective:**  
-Migrate atrmotors.com from Hostinger to AWS to improve scalability, reliability, and performance for a luxury car shop website. The migration will utilize various AWS services to establish a secure, scalable, and highly available architecture, minimizing downtime and ensuring a seamless user experience.
+Migrate atrmotors.com from Hostinger to AWS to improve scalability, reliability, and performance for a luxury car shop website. This migration will leverage Amazon Web Services (AWS) to establish a secure, highly available, and scalable architecture tailored to the organization’s needs.
 
 **Goals:**
 
-- Achieve improved load times and performance stability.
-- Enhance security with AWS native services.
-- Enable scaling for future growth.
-- Reduce downtime during migration.
+- Improve website reliability and performance.
+- Enhance security with AWS native services and HTTPS support.
+- Enable seamless scaling for future traffic growth.
+- Minimize downtime during and after migration.
 
 ---
 
@@ -30,189 +30,142 @@ Migrate atrmotors.com from Hostinger to AWS to improve scalability, reliability,
 
 ## Target Architecture
 
-The following AWS services and resources will be configured in the target architecture:
+![ATR Motors Architecture](./assets/aws_architecture.png)
 
-![AWS Target Architecture](/assets/aws_architecture.png)
+The following AWS services and resources were configured in the target architecture:
 
 ### Components
 
-- **Route 53**: DNS management and domain registration.
-- **CloudFront**: Content Delivery Network (CDN) for reduced latency.
-- **Application Load Balancer (ALB)**: Distributes incoming traffic across multiple instances.
-- **EC2**: Hosts the main application.
-- **RDS**: MySQL database for dynamic content.
-- **S3**: Storage for static assets such as images and scripts.
-- **AWS WAF**: Web Application Firewall for protection against common attacks.
-- **CloudWatch**: Monitoring for performance metrics, logs, and alerts.
+- **Route 53**: DNS management and domain routing.
+- **Elastic Load Balancer (ALB)**: Distributes incoming traffic evenly across multiple instances.
+- **EC2**: Hosts the website on two instances for redundancy and high availability.
+- **AWS Certificate Manager (ACM)**: Issues free SSL/TLS certificates for secure connections.
+- **CloudWatch**: Monitors system performance and logs.
 
 ---
 
 ## AWS Services Utilized
 
-### 1. **Compute & Storage**
+### 1. **Compute & Networking**
 
-- **EC2**: Runs the website’s web server on a `t3.small` instance for efficient performance.
-- **RDS**: Provides a managed MySQL database on a `db.t3.small` instance, with automated backups and snapshots.
-- **S3**: Stores static assets (images, JavaScript, CSS files), allowing faster content delivery via CloudFront.
+- **EC2 Instances**: Two `t2.micro` instances (free tier eligible) running Ubuntu 22.04 LTS.
+- **Elastic Load Balancer (ALB)**: Routes and balances traffic across EC2 instances.
+- **Route 53**: Manages domain DNS and enables smooth domain routing.
 
-### 2. **Network & Security**
+### 2. **Security**
 
-- **Route 53**: Handles DNS routing, enabling efficient domain management and connection reliability.
-- **CloudFront**: CDN that reduces latency by caching static assets closer to users, with SSL/TLS termination for secure HTTPS connections.
-- **Virtual Private Cloud (VPC)**: Organizes network architecture into public and private subnets for security and performance optimization.
-- **Security Groups and Network Access Control Lists (NACLs)**: Controls inbound/outbound traffic at the instance and subnet levels.
+- **AWS Certificate Manager (ACM)**: Provides and manages SSL certificates for secure HTTPS connections.
+- **Security Groups**: Configured to allow HTTP (port 80) and HTTPS (port 443) traffic to the load balancer.
 
-### 3. **Monitoring & Management**
+### 3. **Monitoring**
 
-- **CloudWatch**: Provides metrics and alerts for monitoring CPU usage, network traffic, and error rates.
-- **AWS Backup**: Automates backup processes for both EC2 and RDS, ensuring data redundancy and reliability.
-- **AWS WAF**: Web Application Firewall to protect against common threats like SQL injection and cross-site scripting.
+- **CloudWatch**: Tracks metrics like CPU usage, network traffic, and error rates.
 
 ---
 
 ## Migration Phases
 
-![Migration Phases](/assets/atrmotors_migration_timeline.png)
+### Phase 1: Preparation
 
-### Phase 1: Preparation (Days 1-2)
+- Reviewed existing architecture and identified limitations with the Hostinger environment.
+- Retrieved website files using a web copier tool due to limited access to the original hosting account.
+- Planned and documented migration architecture, DNS settings, and rollback strategy.
 
-- Create AWS account if not existing.
-- Set up IAM roles and permissions.
-- Configure Virtual Private Cloud (VPC) and networking components.
-- Perform a full backup of the website and MySQL database from Hostinger.
-- Document existing DNS settings and SSL configurations.
+### Phase 2: Infrastructure Setup
 
-### Phase 2: Infrastructure Setup (Days 3-4)
+- Deployed two EC2 instances in separate availability zones (`us-east-1a` and `us-east-1b`) to ensure redundancy and fault tolerance.
+- Installed and configured the Apache web server on both EC2 instances.
+- Transferred static website files to the server's root directory from the GitHub repository:  
+  [https://github.com/PaulBoye-py/atr-motors-arthurite.git](https://github.com/PaulBoye-py/atr-motors-arthurite.git).
 
-- Deploy EC2 instance with necessary configurations.
-- Set up RDS MySQL instance with initial database.
-- Configure an S3 bucket for static asset storage.
-- Set up and configure ALB, CloudFront distribution, and associated security groups.
+### Phase 3: Load Balancer Setup
 
-### Phase 3: Application Migration (Days 5-6)
+- Configured an Application Load Balancer (ALB) to distribute incoming traffic between the two EC2 instances.
+- Set up a target group with both instances and verified healthy instance checks.
+- Applied ACM SSL certificates to enable HTTPS and configured HTTP-to-HTTPS redirection.
 
-- Transfer website files to EC2.
-- Migrate the database from Hostinger to RDS.
-- Update application configurations to connect with the new database endpoint.
-- Set up SSL certificates using ACM (AWS Certificate Manager) and configure CloudFront for static assets.
+### Phase 4: DNS Configuration
 
-### Phase 4: Testing (Day 7)
+- Updated DNS records in Route 53 to point to the ALB’s DNS name.
+- Verified DNS propagation and confirmed domain resolution to the AWS-hosted website.
 
-- Perform load testing and verify all functionalities.
-- Test backup and restore procedures.
-- Validate SSL configurations and security settings.
-- Check CloudWatch alerts for performance monitoring.
+### Phase 5: Testing
 
-### Phase 5: Cutover (Day 8)
-
-- Reduce DNS Time-to-Live (TTL) values in Route 53.
-- Update DNS records to point to AWS servers.
-- Monitor DNS propagation and application performance.
-- Confirm all services are fully functional post-migration.
+- Verified load balancer traffic distribution and EC2 instance functionality.
+- Conducted security checks to ensure HTTPS connections worked without warnings.
+- Validated performance under moderate traffic conditions.
 
 ---
 
 ## Potential Challenges and Mitigations
 
-1. **Downtime Minimization**
-   - **Challenge**: Ensuring minimal service interruption.
-   - **Mitigation**: Use DNS TTL adjustments and maintain parallel environments during testing.
+1. **File Retrieval Challenges**
+   - **Mitigation**: Used a web copier tool to crawl and retrieve files from the Hostinger-hosted website.
 
-2. **Data Consistency**
-   - **Challenge**: Avoid data loss during database migration.
-   - **Mitigation**: Use AWS Database Migration Service (DMS) or point-in-time snapshots.
+2. **DNS Propagation Delays**
+   - **Mitigation**: Lowered DNS TTL values before migration and closely monitored propagation.
 
-3. **DNS Propagation**
-   - **Challenge**: Delays in DNS changes taking effect.
-   - **Mitigation**: Schedule migration during off-peak hours and lower TTL in advance.
-
-4. **SSL Certificate Setup**
-   - **Challenge**: Maintaining SSL security during cutover.
-   - **Mitigation**: Prepare SSL in ACM before cutover and validate after DNS update.
+3. **Performance Optimization**
+   - **Mitigation**: Set up CloudWatch metrics and alarms to monitor performance and troubleshoot any bottlenecks.
 
 ---
 
 ## Rollback Plan
 
-1. Maintain Hostinger environment for 7 days after migration.
-2. Keep a full backup of the website and database from Hostinger.
-3. Retain original DNS configurations for immediate rollback.
-4. Prepare reverse DNS update procedure to revert traffic back to Hostinger if necessary.
+1. Maintain backups of website files and DNS records from Hostinger.
+2. Keep Hostinger services active for 7 days post-migration.
+3. Revert DNS settings to the original Hostinger configuration if migration issues occur.
 
 ---
 
 ## Success Criteria
 
-- Website functionality matches or exceeds existing performance.
-- Load time is consistently under 3 seconds.
-- SSL certificate is correctly configured with no security issues.
-- Monitoring and alerting systems are active.
-- Data integrity and completeness with zero data loss.
-- Automated backups verified and operational.
+- Website accessible through the domain name (`atrmotors.com`) with no errors.
+- HTTPS enabled with valid SSL certificates and secure traffic redirection.
+- Traffic evenly distributed across both EC2 instances by the load balancer.
+- High availability ensured, with no downtime during simulated instance failure.
+- Monitoring metrics active in CloudWatch to track system health and performance.
 
 ---
 
 ## Post-Migration Tasks
 
-1. **Monitoring**: Monitor site performance and AWS resources for 48 hours post-migration.
-2. **Documentation**: Update technical documentation to reflect the new architecture and configurations.
-3. **Decommissioning**: Terminate Hostinger services after 7 days if migration is confirmed successful.
-4. **Backup Reviews**: Schedule regular backup checks and retention reviews.
-5. **Training**: Provide AWS training for the management team to handle ongoing operations.
+1. **Monitoring**: Use CloudWatch to continuously monitor infrastructure performance and detect anomalies.
+2. **Documentation**: Provide detailed configuration documentation, including EC2, ELB, ACM, and Route 53 setups.
+3. **Handover**: Share documentation and conduct a walkthrough for stakeholders.
+4. **Decommissioning**: Deactivate Hostinger services after confirming migration success.
 
 ---
 
 ## Budget Considerations
 
-### Estimated Monthly Cost Breakdown
+### Estimated Costs
 
-| SERVICE      | DETAILS                            | EST. COST (USD) | FREE TIER ELIGIBLE          |
-|--------------|------------------------------------|-----------------|-----------------------------|
-| EC2          | 4x t3.small ($0.025/hr)            | ~$73.00         | Yes - 750 hrs t2.micro      |
-| RDS          | Primary db.t3.small ($0.036/hr)    | ~$26.28         | Yes - 750 hrs t2.micro      |
-| RDS          | Standby db.t3.small ($0.036/hr)    | ~$26.28         | No                          |
-| NAT Gateway  | 2x NAT ($0.045/hr + data)          | ~$71.00         | No                          |
-| SES          | 2 email addresses (50K emails)     | ~$5.50          | Yes - 62K emails            |
-| WAF          | Per rule and requests              | ~$11.00         | No                          |
-| CloudWatch   | Basic monitoring + logs            | ~$16.00         | Yes - Basic metrics         |
-| ALB          | 2x Load balancers ($0.0225/hr)     | ~$35.00         | No                          |
-| Data Transfer| Between AZs and internet           | ~$32.00         | Varies                      |
-| **Total Monthly Costs** |                          | **~$299.81**    |                             |
+| Service                | Cost Estimate (Annual) |
+|------------------------|-------------------------|
+| EC2 Instances          | Free (t2.micro)        |
+| Application Load Balancer | $317                  |
+| Route 53               | $14                    |
+| SSL Certificates       | Free (via ACM)         |
+| CloudWatch Monitoring  | Free Tier              |
 
-**Total Estimated Cost with Free Tier**: scaling up to $300 with full instance usage.
-
-By utilizing the AWS Free Tier, we can reduce the initial monthly cost and gradually transition to higher-performance instances as the business grows.
-
----
-
-## Communication Plan
-
-- **Daily Updates**: Send daily status updates to all stakeholders during migration.
-- **Issue Notifications**: Notify stakeholders immediately of any critical issues.
-- **Documentation**: Record and share all configuration changes and decisions.
-- **Weekly Review Meetings**: Hold weekly review meetings to discuss ongoing AWS performance and adjustments.
+**Total Estimated Cost:** $380/year.
 
 ---
 
 ## Appendix: Technical Details
 
-1. **VPC Configuration**
-   - 1 public and 1 private subnet for network segmentation.
-   - Enable NAT gateway for secure internet access in the private subnet.
+1. **EC2 Configuration**
+   - Instances launched with AMI: `ami-0e8d228ad90af673b` (Ubuntu 22.04 LTS).
+   - Apache web server installed and configured on both instances.
 
-2. **Security Groups & NACLs**
-   - Define security groups for EC2 and RDS with port restrictions.
-   - Apply NACLs for additional subnet-level security.
+2. **Load Balancer Setup**
+   - Configured with a target group and HTTP/HTTPS listeners.
+   - ACM SSL certificates applied for secure communication.
 
-3. **IAM Roles & Policies**
-   - Assign roles for EC2, RDS, and S3 with least privilege access.
-   - Create IAM policies for admin and developer access.
+3. **DNS Configuration**
+   - Route 53 hosted zone updated with A and CNAME records pointing to the ALB.
 
-4. **Database Migration**
-   - Utilize AWS DMS or point-in-time snapshot to transition MySQL data.
-
-5. **SSL Configuration**
-   - Use AWS ACM for SSL certificates on CloudFront and ALB.
-   - Validate SSL status post-migration.
-
----
+4. **Monitoring**
+   - CloudWatch metrics set up for CPU, network traffic, and instance health.
+   - Alarms configured for abnormal resource utilization.
