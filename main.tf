@@ -4,7 +4,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 4.16"
     }
-
   }
   required_version = ">= 1.2.0"
 }
@@ -24,6 +23,11 @@ provider "aws" {
   region     = "us-east-1"
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
+}
+
+# Get existing Route 53 hosted zone
+data "aws_route53_zone" "domain" {
+  name = "atrmotors.com"
 }
 
 # create a vpc
@@ -172,8 +176,6 @@ locals {
               EOF
 }
 
-# ... (rest of the configuration remains the same)
-
 # EC2 Instances
 resource "aws_instance" "web_server_1" {
   ami                    = "ami-0866a3c8686eaeeba" # Ubuntu 22.04 LTS
@@ -250,97 +252,94 @@ resource "aws_lb_listener" "web_listener" {
   protocol          = "HTTP"
 
   default_action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# Request and validate SSL certificate
+resource "aws_acm_certificate" "ssl_certificate" {
+  domain_name               = "atrmotors.com"
+  subject_alternative_names = ["*.atrmotors.com"] # Covers all subdomains
+  validation_method         = "DNS"
+
+  tags = {
+    Name = "ATR Motors SSL Certificate"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Create DNS records for certificate validation
+resource "aws_route53_record" "cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.ssl_certificate.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  }
+
+  allow_overwrite = true
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.domain.zone_id
+}
+
+# Certificate validation
+resource "aws_acm_certificate_validation" "cert_validation" {
+  certificate_arn         = aws_acm_certificate.ssl_certificate.arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+# Create A record for the domain pointing to the ALB
+resource "aws_route53_record" "website" {
+  zone_id = data.aws_route53_zone.domain.zone_id
+  name    = "atrmotors.com"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.web_lb.dns_name
+    zone_id                = aws_lb.web_lb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# Create www subdomain record
+resource "aws_route53_record" "www" {
+  zone_id = data.aws_route53_zone.domain.zone_id
+  name    = "www.atrmotors.com"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.web_lb.dns_name
+    zone_id                = aws_lb.web_lb.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# Create HTTPS listener for the load balancer
+resource "aws_lb_listener" "https_listener" {
+  load_balancer_arn = aws_lb.web_lb.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08" # AWS recommended policy
+  certificate_arn   = aws_acm_certificate.ssl_certificate.arn
+
+  default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.web_tg.arn
   }
 }
 
-# # Request and validate SSL certificate
-# resource "aws_acm_certificate" "ssl_certificate" {
-#   domain_name               = "atrmotors.com"
-#   subject_alternative_names = ["*.atrmotors.com"] # Covers all subdomains
-#   validation_method         = "DNS"
-
-#   tags = {
-#     Name = "ATR Motors SSL Certificate"
-#   }
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
-
-# # Create DNS records for certificate validation
-# resource "aws_route53_record" "cert_validation" {
-#   for_each = {
-#     for dvo in aws_acm_certificate.ssl_certificate.domain_validation_options : dvo.domain_name => {
-#       name   = dvo.resource_record_name
-#       record = dvo.resource_record_value
-#       type   = dvo.resource_record_type
-#     }
-#   }
-
-#   allow_overwrite = true
-#   name            = each.value.name
-#   records         = [each.value.record]
-#   ttl             = 60
-#   type            = each.value.type
-#   zone_id         = data.aws_route53_zone.domain.zone_id # Reference to your hosted zone
-# }
-
-# # Certificate validation
-# resource "aws_acm_certificate_validation" "cert_validation" {
-#   certificate_arn         = aws_acm_certificate.ssl_certificate.arn
-#   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
-# }
-
-# # Get existing Route 53 hosted zone
-# data "aws_route53_zone" "domain" {
-#   name = "atrmotors.com"
-# }
-
-# # Create A record for the domain pointing to the ALB
-# resource "aws_route53_record" "website" {
-#   zone_id = data.aws_route53_zone.domain.zone_id
-#   name    = "atrmotors.com"
-#   type    = "A"
-
-#   alias {
-#     name                   = aws_lb.web_lb.dns_name
-#     zone_id                = aws_lb.web_lb.zone_id
-#     evaluate_target_health = true
-#   }
-# }
-
-# # Create HTTPS listener for the load balancer
-# resource "aws_lb_listener" "https_listener" {
-#   load_balancer_arn = aws_lb.web_lb.arn
-#   port              = 443
-#   protocol          = "HTTPS"
-#   ssl_policy        = "ELBSecurityPolicy-2016-08" # AWS recommended policy
-#   certificate_arn   = aws_acm_certificate.ssl_certificate.arn
-
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_lb_target_group.web_tg.arn
-#   }
-# }
-
-# # Modify existing HTTP listener to redirect to HTTPS
-# resource "aws_lb_listener" "web_listener" {
-#   load_balancer_arn = aws_lb.web_lb.arn
-#   port              = 80
-#   protocol          = "HTTP"
-
-#   default_action {
-#     type = "redirect"
-#     redirect {
-#       port        = "443"
-#       protocol    = "HTTPS"
-#       status_code = "HTTP_301"
-#     }
-#   }
-# }
 # Outputs
 output "load_balancer_dns" {
   value = aws_lb.web_lb.dns_name
