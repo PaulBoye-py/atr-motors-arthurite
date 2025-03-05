@@ -138,6 +138,99 @@ resource "aws_security_group" "allow_web_and_ssh_traffic" {
   }
 }
 
+# locals {
+#   user_data = <<-EOF
+#               #!/bin/bash
+#               # Update packages
+#               sudo apt-get update -y
+
+#               # Install Apache2
+#               sudo apt-get install apache2 -y
+
+#               # Install Git
+#               sudo apt-get install git -y
+
+#               # Remove default Apache index
+#               sudo rm /var/www/html/index.html
+
+#               # Clone the repository 
+#               cd /var/www/html
+#               sudo git clone https://github.com/PaulBoye-py/atr-motors-arthurite.git
+
+#               # Copy files from atrmotors.com directory to web root
+#               sudo cp -r atr-motors-arthurite/atrmotors.com/* .
+
+#               # Clean up the cloned repository
+#               sudo rm -rf atr-motors-arthurite
+
+#               # Set correct permissions
+#               sudo chown -R www-data:www-data /var/www/html
+#               sudo chmod -R 755 /var/www/html
+
+#               # Restart Apache
+#               sudo systemctl restart apache2
+
+#               # Set up daily git pull at midnight
+#               (crontab -l 2>/dev/null; echo "0 0 * * * cd /var/www/html && sudo git pull") | crontab -
+
+#               EOF
+# }
+# locals {
+#   user_data = <<-EOF
+#               #!/bin/bash
+#               # Update packages
+#               sudo apt-get update -y
+
+#               # Install Apache2
+#               sudo apt-get install apache2 -y
+
+#               # Install Git
+#               sudo apt-get install git -y
+
+#               # Enable Apache modules
+#               sudo a2enmod rewrite
+
+#               # Remove default Apache index
+#               sudo rm /var/www/html/index.html
+
+#               # Clone the repository 
+#               cd /var/www/html
+#               sudo git clone https://github.com/PaulBoye-py/atr-motors-arthurite.git
+
+#               # Copy files from atrmotors.com directory to web root
+#               sudo cp -r atr-motors-arthurite/atrmotors.com/* .
+
+#               # Create .htaccess file for URL rewriting
+#               sudo tee /var/www/html/.htaccess > /dev/null <<'HTACCESS'
+#               RewriteEngine On
+#               RewriteCond $${REQUEST_FILENAME} !-d
+#               RewriteCond $${REQUEST_FILENAME}.html -f
+#               RewriteRule ^(.*)$ $1.html [L]
+#               HTACCESS
+
+#               # Modify Apache site configuration to allow .htaccess
+#               sudo sed -i '/<Directory \/var\/www\/html>/,/<\/Directory>/ c\
+#               <Directory /var/www/html>\
+#                   Options Indexes FollowSymLinks\
+#                   AllowOverride All\
+#                   Require all granted\
+#               </Directory>' /etc/apache2/sites-available/000-default.conf
+
+#               # Clean up the cloned repository
+#               sudo rm -rf atr-motors-arthurite
+
+#               # Set correct permissions
+#               sudo chown -R www-data:www-data /var/www/html
+#               sudo chmod -R 755 /var/www/html
+
+#               # Restart Apache
+#               sudo systemctl restart apache2
+
+#               # Set up daily git pull at midnight
+#               (crontab -l 2>/dev/null; echo "0 0 * * * cd /var/www/html && sudo git pull") | crontab -
+
+#               EOF
+# }
 locals {
   user_data = <<-EOF
               #!/bin/bash
@@ -175,6 +268,7 @@ locals {
               
               EOF
 }
+
 
 # EC2 Instances
 resource "aws_instance" "web_server_1" {
