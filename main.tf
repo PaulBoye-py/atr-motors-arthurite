@@ -264,7 +264,7 @@ locals {
               sudo systemctl restart apache2
 
               # Set up daily git pull at midnight
-              (crontab -l 2>/dev/null; echo "0 0 * * * cd /var/www/html && sudo git pull") | crontab -
+              (crontab -l 2>/dev/null; echo "0 0 * * * cd /var/www/html && sudo git clone https://github.com/PaulBoye-py/atr-motors-arthurite.git &&  sudo cp -r atr-motors-arthurite/atrmotors.com/* . && sudo chown -R www-data:www-data /var/www/html && sudo chmod -R 755 /var/www/html && sudo systemctl restart apache2") | crontab -
               
               EOF
 }
