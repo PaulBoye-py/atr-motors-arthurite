@@ -8,3 +8,8 @@ terraform.tfstate
 
 terraform.tfstate.backup
 
+github-actions-key
+
+github-actions-key.pub
+
+server-key.pem
