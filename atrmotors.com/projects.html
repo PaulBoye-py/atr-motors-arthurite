@@ -60,6 +60,7 @@
       rel="prefetch"
       href="https://assets.zyrosite.com/Yleyl28b8LfEbZpL/traffic.txt"
     />
+    {% comment %}
     <script type="text/javascript">
       (function (d, m) {
         var kommunicateSettings = {
@@ -77,6 +78,28 @@
         m._globals = kommunicateSettings;
       })(document, window.kommunicate || {});
       /* NOTE : Use web server to view HTML files as real-time update will not work if you directly open the HTML file in the browser. */
+    </script>
+    {% endcomment %}
+    <script src="https://d3mnjv8kqkad2q.cloudfront.net/lex-web-ui-loader.min.js"></script>
+    <script>
+      var loaderOpts = {
+        baseUrl: "https://d3mnjv8kqkad2q.cloudfront.net/",
+        shouldLoadMinDeps: true,
+      };
+      var loader = new ChatBotUiLoader.IframeLoader(loaderOpts);
+      var chatbotUiConfig = {
+        /* Example of setting session attributes on parent page
+                      lex: {
+                        sessionAttributes: {
+                          userAgent: navigator.userAgent,
+                          QNAClientFilter: ''
+                        }
+                      }
+                      */
+      };
+      loader.load(chatbotUiConfig).catch(function (error) {
+        console.error(error);
+      });
     </script>
     <script>
       (function () {
